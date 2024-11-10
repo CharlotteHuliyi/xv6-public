@@ -54,7 +54,7 @@ mycpu(void)
 
 // Disable interrupts so that we are not rescheduled
 // while reading proc from the cpu structure
-struct proc*
+struct proc* 
 myproc(void) {
   struct cpu *c;
   struct proc *p;
@@ -88,6 +88,7 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->nice = 3;
 
   release(&ptable.lock);
 

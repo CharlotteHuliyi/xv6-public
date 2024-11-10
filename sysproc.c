@@ -7,6 +7,13 @@
 #include "mmu.h"
 #include "proc.h"
 
+#include "spinlock.h"
+extern struct {
+  struct spinlock lock;
+  struct proc proc[NPROC];
+} ptable;
+
+
 int
 sys_fork(void)
 {
@@ -88,4 +95,50 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+
+int sys_nice(void) {
+  int pid, new_nice_value;
+
+  // Fetch the pid and nice value arguments
+  if (argint(0, &pid) < 0 || argint(1, &new_nice_value) < 0) {
+    return -1; // Invalid arguments
+  }
+
+  // Bounds check for new nice value (should be between 1 and 5)
+  if (new_nice_value < 1 || new_nice_value > 5) {
+    cprintf("sys_nice: new_nice_value %d is out of bounds (must be between 1 and 5)\n", new_nice_value);
+    return -1; // Invalid nice value
+  }
+
+  struct proc *p = 0;
+  int old_nice_value = -1;
+
+  acquire(&ptable.lock); // Lock the process table
+
+  // If pid is 0, use the current process
+  if (pid == 0) {
+    p = myproc(); // Get the current process
+  } else {
+    // Otherwise, search for the process with the given pid
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+      if (p->pid == pid) {
+        break;
+      }
+    }
+  }
+
+  if (p && p->state != UNUSED) { // Check if process exists and is valid
+    old_nice_value = p->nice;  // Store old nice value
+    p->nice = new_nice_value;  // Update nice value
+  } else {
+    release(&ptable.lock);
+    return -1; // Process with given pid not found or invalid
+  }
+
+  release(&ptable.lock); // Unlock the process table
+
+  // Return the pid and old nice value packed as a single integer
+  return (p->pid << 16) | (old_nice_value & 0xFFFF);
 }
