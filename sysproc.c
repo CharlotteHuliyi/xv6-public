@@ -13,6 +13,8 @@ extern struct {
   struct proc proc[NPROC];
 } ptable;
 
+extern int scheduler_mode;
+
 
 int
 sys_fork(void)
@@ -141,4 +143,15 @@ int sys_nice(void) {
 
   // Return the pid and old nice value packed as a single integer
   return (p->pid << 16) | (old_nice_value & 0xFFFF);
+}
+
+
+int sys_setschedmode(void) {
+    int mode;
+    if (argint(0, &mode) < 0)
+        return -1;
+    if (mode != 0 && mode != 1)
+        return -1;  // Only accept 0 or 1 as valid inputs
+    scheduler_mode = mode;
+    return 0;
 }
