@@ -57,7 +57,8 @@ mycpu(void)
 // Disable interrupts so that we are not rescheduled
 // while reading proc from the cpu structure
 struct proc* 
-myproc(void) {
+myproc(void) 
+{
   struct cpu *c;
   struct proc *p;
   pushcli();
@@ -186,6 +187,7 @@ fork(void)
   int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
+
 
   // Allocate process.
   if((np = allocproc()) == 0){
@@ -347,7 +349,7 @@ void scheduler(void) {
 
             // If a process with the highest priority is found, switch to it
             if (highest_priority_proc) {
-                p = highest_priority_proc;
+                p = highest_priority_proc; 
                 c->proc = p;
                 switchuvm(p);
                 p->state = RUNNING;

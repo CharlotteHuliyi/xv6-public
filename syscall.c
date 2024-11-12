@@ -104,7 +104,9 @@ extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
 extern int sys_nice(void);
-extern int sys_setschedmode(void); 
+extern int sys_setschedmode(void);
+extern int sys_yield(void);
+
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -130,6 +132,7 @@ static int (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 [SYS_nice]    sys_nice,
 [SYS_setschedmode] sys_setschedmode,
+[SYS_yield]    sys_yield,
 };
 
 void

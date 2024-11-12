@@ -1,4 +1,3 @@
-
 #include "types.h"
 #include "stat.h"
 #include "user.h"
@@ -32,6 +31,7 @@ int main(void) {
     for (int i = 0; i < 3; i++) {
         if (fork() == 0) {   // Child process
             nice(0, nice_value);      // Set the same nice value for each child
+            sleep(5);
             int prime_count = compute_primes(time_limit); // Compute primes within time limit
             printf(1, "Process %d with nice %d calculated %d primes in %d ticks.\n", getpid(), nice_value, prime_count, time_limit);
             sleep(10); 

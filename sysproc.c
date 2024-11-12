@@ -155,3 +155,10 @@ int sys_setschedmode(void) {
     scheduler_mode = mode;
     return 0;
 }
+
+int
+sys_yield(void)
+{
+    yield();
+    return 0;
+}

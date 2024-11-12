@@ -29,6 +29,6 @@ int main(int argc, char *argv[]) {
         int old_nice_value = result & 0xFFFF;   // Extract old nice value
         printf(1, "%d %d\n", old_pid, old_nice_value);
     }
-
+    
     exit();
 }

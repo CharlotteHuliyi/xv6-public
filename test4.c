@@ -1,109 +1,72 @@
-// #include "types.h"
-// #include "stat.h"
-// #include "user.h"
-
-// int compute_primes(int limit) {
-//     int i = 2;
-//     int prime_count = 0;
-
-//     while (prime_count < limit) {
-//         int is_prime = 1;
-//         for (int j = 2; j * j <= i; j++) {
-//             if (i % j == 0) {
-//                 is_prime = 0;
-//                 break;
-//             }
-//         }
-//         if (is_prime) {
-//             prime_count++;
-//         }
-//         i++;
-//     }
-//     return prime_count;
-// }
-
-// int main(void) {
-//     int nice_values[] = {1, 3, 5};       // Nice values representing priority
-//     int limits[] = {2000, 1500, 1000};   // Workload limits for each child
-
-//     // Fork child processes
-//     for (int i = 0; i < 3; i++) {
-//         if (fork() == 0) {   // Child process
-//             nice(0, nice_values[i]);     // Set nice value based on priority
-//             int prime_count = compute_primes(limits[i]); // Compute primes up to limit
-//             printf(1, "Process with nice %d finished with %d primes calculated.\n", nice_values[i], prime_count);
-//             sleep(10); // Small delay to reduce output overlap
-//             exit(); // Exit after computation
-//         }
-//     }
-
-//     // Parent waits for each child process to complete
-//     for (int i = 0; i < 3; i++) {
-//         wait(); // Parent waits for each child to complete
-//     }
-
-//     printf(1, "Test4 complete. Results should reflect priority differences in CPU allocation.\n");
-//     exit();
-// }
-
-
 #include "types.h"
 #include "stat.h"
 #include "user.h"
 
-int compute_primes(int limit) {
-    int i = 2;
-    int prime_count = 0;
+// Function to set scheduler mode (0 = Round Robin, 1 = Priority-based)
+void set_scheduler_mode(int mode) {
+    setschedmode(mode); // Assuming this system call is implemented to set the scheduler mode
+}
 
-    while (prime_count < limit) {
+// Delay function based on nice value
+void staggered_delay(int nice_value) {
+    for (volatile int i = 0; i < nice_value * 5000000; i++) {
+        asm volatile("nop"); // No operation to induce delay
+    }
+}
+
+// CPU-intensive task to demonstrate priority scheduling
+void cpu_task(int nice_value) {
+    int i, j, count = 0;
+    printf(1, "\nProcess with nice=%d started.\n", nice_value);
+
+    for (i = 2; i < 10000; i++) {
         int is_prime = 1;
-        for (int j = 2; j * j <= i; j++) {
+        for (j = 2; j * j <= i; j++) {
             if (i % j == 0) {
                 is_prime = 0;
                 break;
             }
         }
         if (is_prime) {
-            prime_count++;
-        }
-        i++;
-    }
-    return prime_count;
-}
-
-void run_test_with_scheduler_mode(int mode) {
-    setschedmode(mode);  // Set the scheduler mode: 0 for Round Robin, 1 for Priority-based
-    printf(1, "Running test4 with scheduler mode %s.\n", mode == 1 ? "Priority-based" : "Round Robin");
-
-    int nice_values[] = {1, 3, 5};       // Nice values representing priority
-    int limits[] = {2000, 1500, 1000};   // Workload limits for each child
-
-    // Fork child processes
-    for (int i = 0; i < 3; i++) {
-        if (fork() == 0) {   // Child process
-            nice(0, nice_values[i]);     // Set nice value based on priority
-            int prime_count = compute_primes(limits[i]); // Compute primes up to limit
-            printf(1, "Process with nice %d finished with %d primes calculated.\n", nice_values[i], prime_count);
-            sleep(10); // Small delay to reduce output overlap
-            exit(); // Exit after computation
+            count++;
+            if (count % 500 == 0) {  // Progress update every 500 primes
+                printf(1, "Process with nice=%d has found %d primes so far.\n", nice_value, count);
+            }
         }
     }
 
-    // Parent waits for each child process to complete
-    for (int i = 0; i < 3; i++) {
-        wait(); // Parent waits for each child to complete
-    }
-
-    printf(1, "Test4 complete in %s mode.\n", mode == 1 ? "Priority-based" : "Round Robin");
+    printf(1, "Process with nice=%d completed. Total primes found: %d\n", nice_value, count);
 }
 
-int main(void) {
-    // Run test with Round Robin mode
-    run_test_with_scheduler_mode(0);
+int main() {
+    int pid;
+    int num_processes = 5;
+    int nice_values[] = {1, 2, 3, 4, 5};
 
-    // Run test with Priority-based Round Robin mode
-    run_test_with_scheduler_mode(1);
+    // Set scheduler mode to priority-based
+    set_scheduler_mode(1); // Set to priority-based scheduling
 
-    printf(1, "Test4 finished. Compare results between Round Robin and Priority-based modes.\n");
+    // Fork child processes and assign different nice values
+    for (int i = 0; i < num_processes; i++) {
+        pid = fork();
+        if (pid < 0) {
+            printf(1, "Fork failed\n");
+            exit();
+        } else if (pid == 0) {
+            // In child process: set nice value, delay, and perform CPU-intensive task
+            int current_pid = getpid();
+            nice(current_pid, nice_values[i]);
+            staggered_delay(nice_values[i]); // Stagger start based on priority
+            cpu_task(nice_values[i]);
+            exit();
+        }
+    }
+
+    // Parent process waits for all child processes to complete
+    for (int i = 0; i < num_processes; i++) {
+        wait();
+    }
+
+    printf(1, "\nAll child processes have completed.\n");
     exit();
 }

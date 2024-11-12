@@ -1,3 +1,16 @@
+#define MAX_PRIORITY 5  // Define the maximum priority level (1 = highest priority, 5 = lowest priority)
+#define DEFAULT_PRIORITY 3  // Default priority level assigned to new processes
+
+struct proc_queue {
+    struct proc *procs[NPROC];  // Array to hold processes in this priority queue
+    int head;
+    int tail;
+};
+
+struct proc_queue priority_queues[MAX_PRIORITY];  // Array of priority queues
+
+
+
 // Per-CPU state
 struct cpu {
   uchar apicid;                // Local APIC ID

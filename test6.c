@@ -1,46 +1,46 @@
 #include "types.h"
 #include "stat.h"
 #include "user.h"
+// Set scheduler mode function (0 for Round Robin, 1 for Priority-based)
+void set_scheduler_mode(int mode) {
+    setschedmode(mode); 
+}
 
-int compute_primes(int time_limit) {
-    int i = 2;
-    int prime_count = 0;
-    int start_time = uptime();
-
-    while ((uptime() - start_time) < time_limit) {
-        int is_prime = 1;
-        for (int j = 2; j * j <= i; j++) {
-            if (i % j == 0) {
-                is_prime = 0;
-                break;
-            }
-        }
-        if (is_prime) {
-            prime_count++;
-        }
-        i++;
+// Function to simulate a CPU-bound task with a spinlock delay
+void spinlock_task(int spin_count) {
+    volatile int i;
+    for (i = 0; i < spin_count; i++) {
+        asm volatile("nop");  // No operation to consume CPU cycles
     }
-    return prime_count;
 }
 
 int main(void) {
-    int initial_nice = 3;        // Start with the same nice value for all processes
-    int time_limit = 100;        // Run each process for 100 ticks initially
+    set_scheduler_mode(1);           // Set scheduler to priority-based mode
 
-    // Fork child processes
+    int nice_values[] = {1, 3, 5};   // Nice values within the 1-5 boundary
+    int spin_count = 500000000;      // Large spin count for a CPU-intensive task
+    int staggered_start_delay[] = {5, 10, 15}; // Staggered start to reduce overlap
+
+    // Fork child processes with different fixed priorities
     for (int i = 0; i < 3; i++) {
-        if (fork() == 0) {   // Child process
-            nice(0, initial_nice);      // Set the initial nice value
-            int primes_first_half = compute_primes(time_limit); // Compute primes for first half
+        if (fork() == 0) {           // Child process
+            sleep(staggered_start_delay[i]); // Staggered start for readability
 
-            // Adjust nice value mid-computation
-            if (i == 0) nice(0, 1);     // Set highest priority for process 0
-            else if (i == 1) nice(0, 5); // Set lowest priority for process 1
-            // Process 2 keeps the same nice value
+            // Set the nice value for each process
+            nice(0, nice_values[i]);
 
-            int primes_second_half = compute_primes(time_limit); // Compute primes for second half
-            printf(1, "Process %d: First half=%d primes, Second half=%d primes, Final nice=%d\n", getpid(), primes_first_half, primes_second_half, i == 0 ? 1 : (i == 1 ? 5 : 3));
-            sleep(10); // Small delay to reduce output overlap
+            // Record start time
+            int start_time = uptime();
+
+            // Run CPU-bound task
+            spinlock_task(spin_count);
+
+            // Record end time and calculate total time taken
+            int end_time = uptime();
+            int total_ticks = end_time - start_time;
+
+            // Print results with final nice value and time taken
+            printf(1, "Process %d completed. Total ticks used=%d, Fixed nice=%d\n", getpid(), total_ticks, nice_values[i]);
             exit(); // Exit after computation
         }
     }
@@ -50,6 +50,6 @@ int main(void) {
         wait(); // Parent waits for each child to complete
     }
 
-    printf(1, "Test6 complete. Results should reflect dynamic priority changes.\n");
+    printf(1, "Test6 complete. Results should reflect impact of fixed priority differences.\n");
     exit();
 }

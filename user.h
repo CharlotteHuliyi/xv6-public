@@ -25,6 +25,7 @@ int sleep(int);
 int uptime(void);
 int nice(int pid, int value);
 int setschedmode(int mode);
+int yield(void);
 
 
 // ulib.c
